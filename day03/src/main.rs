@@ -15,11 +15,12 @@ fn main() -> Result<(), Box<dyn Error>> {
     let score: usize = fs::read_to_string("input.txt")?
         .lines()
         .map(|line| {
-            let l = line.len();
-            let left = line[..l / 2].chars().collect::<HashSet<_>>();
-            line[l / 2..]
-                .chars()
-                .find(|&c| left.contains(&c))
+            let (left, right) = line.split_at(line.len() / 2);
+            let left_set = left.chars().collect::<HashSet<_>>();
+            let right_set = right.chars().collect::<HashSet<_>>();
+            left_set
+                .intersection(&right_set)
+                .collect::<HashSet<_>>()
                 .iter()
                 .map(|c| calc_score(c).unwrap())
                 .sum::<usize>()

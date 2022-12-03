@@ -4,14 +4,14 @@ use std::error::Error;
 use std::fs;
 use std::str::FromStr;
 
-#[derive(Debug, PartialEq, Clone, Copy)]
+#[derive(Clone, Copy)]
 enum Move {
     Rock,
     Paper,
     Scissors,
 }
 
-#[derive(Debug, PartialEq, Clone, Copy)]
+#[derive(Clone, Copy)]
 enum Goal {
     Loose,
     Draw,
@@ -94,27 +94,22 @@ fn get_move(x: Move, goal: Goal) -> Move {
 }
 
 fn main() -> Result<(), Box<dyn Error>> {
-    let score: usize = fs::read_to_string("input.txt")?
+    let (score, score2) = fs::read_to_string("input.txt")?
         .lines()
         .map(|line| {
             let moves = line.split(" ").collect::<Vec<&str>>();
             let x = Move::from_str(moves[0]).unwrap();
             let y = Move::from_str(moves[1]).unwrap();
-            calc_score(y) + calc_winloss_score(x, y)
+            let y2 = get_move(x, Goal::from_str(moves[1]).unwrap());
+            (
+                calc_score(y) + calc_winloss_score(x, y),
+                calc_score(y2) + calc_winloss_score(x, y2),
+            )
         })
-        .sum();
+        .collect::<Vec<_>>()
+        .iter()
+        .fold((0, 0), |a, b| (a.0 + b.0, a.1 + b.1));
     println!("A: {score}");
-
-    let score2: usize = fs::read_to_string("input.txt")?
-        .lines()
-        .map(|line| {
-            let moves = line.split(" ").collect::<Vec<&str>>();
-            let x = Move::from_str(moves[0]).unwrap();
-            let goal = Goal::from_str(moves[1]).unwrap();
-            let y = get_move(x, goal);
-            calc_score(y) + calc_winloss_score(x, y)
-        })
-        .sum();
     println!("B: {score2}");
 
     Ok(())

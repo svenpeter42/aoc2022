@@ -4,6 +4,9 @@ use itertools::Itertools;
 use std::error::Error;
 use std::fs;
 
+extern crate tuple;
+use tuple::*;
+
 trait Interval<Rhs = Self> {
     fn contains(self, rhs: Rhs) -> bool;
     fn overlaps(self, rhg: Rhs) -> bool;
@@ -26,15 +29,11 @@ fn main() -> Result<(), Box<dyn Error>> {
         .lines()
         .map(|line| {
             let elf_interval: ((u32, u32), (u32, u32)) = line
-                .split(",")
-                .map(|elf| {
-                    elf.split("-")
-                        .map(|i| i.parse::<u32>().unwrap())
-                        .next_tuple()
-                        .unwrap()
-                })
-                .next_tuple()
-                .unwrap();
+                .split(['-', ','])
+                .map(|i| i.parse::<u32>().unwrap())
+                .collect_tuple::<(_, _, _, _)>()
+                .unwrap()
+                .split();
             (
                 (elf_interval.0.contains(elf_interval.1) || elf_interval.1.contains(elf_interval.0))
                     as u32,

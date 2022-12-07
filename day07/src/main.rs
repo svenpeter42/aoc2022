@@ -24,7 +24,7 @@ impl DirNode {
     fn find_child(&self, name: &str) -> Option<&Rc<RefCell<FSNode>>> {
         self.children
             .iter()
-            .filter(|&c| match &*c.borrow_mut() {
+            .filter(|&c| match &*c.borrow() {
                 FSNode::Dir(d) => d.name == name,
                 FSNode::File(f) => f.name == name,
             })
@@ -45,11 +45,12 @@ impl FSNode {
         }
     }
 
-    fn add_size(&mut self, size: usize) {
+    fn add_size(&mut self, size: usize) -> &mut FSNode {
         match self {
             FSNode::Dir(d) => d.size += size,
             FSNode::File(f) => f.size += size,
-        }
+        };
+        self
     }
 
     fn get_parent(&self) -> Option<Rc<RefCell<FSNode>>> {
@@ -72,11 +73,11 @@ impl FSNode {
         }
     }
 
-    fn add_child(&mut self, child: Rc<RefCell<FSNode>>) -> Result<(), &'static str> {
+    fn add_child(&mut self, child: Rc<RefCell<FSNode>>) -> Result<&mut FSNode, &'static str> {
         match self {
             FSNode::Dir(d) => {
                 d.children.push(child);
-                Ok(())
+                Ok(self)
             }
             FSNode::File(_) => Err("Cannot add children to FileNode"),
         }
@@ -137,15 +138,14 @@ fn parse_fs(input: &str) -> Result<Rc<RefCell<FSNode>>, &'static str> {
                 .collect_tuple::<(_, _)>()
                 .map(|(size, name)| (size.parse::<usize>().unwrap(), name))
                 .unwrap();
-
             current
                 .borrow_mut()
                 .add_child(Rc::new(RefCell::new(FSNode::File(FileNode {
                     name: name.to_string(),
                     size: size,
                     parent: Some(Rc::clone(&current)),
-                }))))?;
-            current.borrow_mut().add_size(size);
+                }))))?
+                .add_size(size);
         }
     }
 
@@ -193,7 +193,7 @@ fn find_small_directory_above(input: &str) -> Result<usize, &'static str> {
 
     queue.push(fs);
     while let Some(node) = queue.pop() {
-        match &*node.borrow_mut() {
+        match &*node.borrow() {
             FSNode::Dir(d) => {
                 if d.size >= min_size {
                     result_size = Some(match result_size {

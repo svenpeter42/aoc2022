@@ -4,8 +4,10 @@ use itertools::Itertools;
 use std::collections::HashSet;
 use std::error::Error;
 use std::fs;
+use std::iter;
 use std::str::FromStr;
 
+#[derive(Debug, Clone, Copy)]
 enum Direction {
     Left,
     Right,
@@ -31,12 +33,8 @@ struct Rope {
 impl Rope {
     fn new(n_heads: usize) -> Rope {
         Rope {
-            heads: (0..n_heads).map(|_| Pos { x: 0, y: 0 }).collect(),
+            heads: iter::repeat(Pos { x: 0, y: 0 }).take(n_heads).collect(),
         }
-    }
-
-    fn get_tail_position(&self) -> Option<&Pos> {
-        self.heads.last()
     }
 
     fn update_tail(head: Pos, tail: &mut Pos) {
@@ -50,7 +48,7 @@ impl Rope {
         }
     }
 
-    fn move_head(&mut self, d: &Direction) {
+    fn move_head(&mut self, d: &Direction) -> &Pos {
         match d {
             Direction::Up => self.heads[0].y += 1,
             Direction::Down => self.heads[0].y -= 1,
@@ -61,6 +59,8 @@ impl Rope {
         for i in 1..self.heads.len() {
             Rope::update_tail(self.heads[i - 1], &mut self.heads[i]);
         }
+
+        self.heads.last().unwrap()
     }
 }
 
@@ -101,16 +101,14 @@ fn parse_moves(input: &str) -> Result<Vec<Move>, Box<dyn Error>> {
 
 fn count_unqiue_tail_positions(moves: &Vec<Move>, n_heads: usize) -> usize {
     let mut rope = Rope::new(n_heads);
-    let mut positions = HashSet::<Pos>::new();
 
-    for m in moves.iter() {
-        for _ in 0..m.count {
-            rope.move_head(&m.dir);
-            positions.insert(*rope.get_tail_position().unwrap());
-        }
-    }
-
-    positions.len()
+    moves
+        .iter()
+        .map(|m| iter::repeat(m.dir).take(m.count))
+        .flatten()
+        .map(|d| *rope.move_head(&d))
+        .collect::<HashSet<_>>()
+        .len()
 }
 
 fn main() -> Result<(), Box<dyn Error>> {
